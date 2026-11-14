@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f766e">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>מעקב תשלומים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#f4f5f7;--card:#fff;--ink:#16181d;--muted:#6b7280;--line:#e5e7eb;
+--brand:#0f766e;--brand-soft:#e6f4f2;--red:#c2410c;--red-soft:#fdf0e9;--green:#15803d;--green-soft:#e8f6ec;
+--r:16px;
+}
+@media (prefers-color-scheme:dark){
+:root{--bg:#0f1115;--card:#1a1d23;--ink:#f1f2f4;--muted:#9aa1ad;--line:#2a2e36;
+--brand:#2dd4bf;--brand-soft:#123532;--red:#fb923c;--red-soft:#3a2417;--green:#4ade80;--green-soft:#15301f;}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif;font-size:24px}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:560px;margin:0 auto;padding:16px 14px 140px}
+header h1{font-size:36px;font-weight:800;margin:4px 0 2px}
+header p{margin:0;color:var(--muted);font-size:22px}
+.stats{display:grid;grid-template-columns:1fr;gap:8px;margin:16px 0}
+.stat{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:var(--r);padding:12px 14px;border:1px solid var(--line)}
+.stat .l{font-size:18px;color:var(--muted)}
+.stat .v{font-size:26px;font-weight:800;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat.debt{grid-column:1/-1}
+.stat.debt .v{color:var(--red)}
+.search{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:24px;outline:none}
+.search:focus{border-color:var(--brand)}
+.chips{display:flex;gap:8px;margin:10px 0 14px;overflow-x:auto}
+.chip{border:1px solid var(--line);background:var(--card);padding:10px 16px;border-radius:999px;font-size:22px;white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;cursor:pointer}
+.item .top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:8px}
+.item .name{font-weight:700;font-size:25px}
+.item .phone{color:var(--muted);font-size:22px;direction:ltr;text-align:right}
+.badge{font-size:18px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.badge.open{background:var(--red-soft);color:var(--red)}
+.badge.done{background:var(--green-soft);color:var(--green)}
+.bar{height:6px;background:var(--line);border-radius:4px;margin:12px 0 8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:4px}
+.nums{display:flex;flex-direction:column;gap:4px;font-size:19px;color:var(--muted)}
+.nums b{color:var(--ink)}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+.fab{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;border:0;border-radius:999px;padding:15px 28px;font-weight:700;font-size:24px;box-shadow:0 6px 20px rgba(0,0,0,.18);cursor:pointer}
+@media (prefers-color-scheme:dark){.fab{color:#062a26}}
+.note{font-size:19px;color:var(--muted);background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-top:12px}
+/* sheet */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.overlay.show{display:flex}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;animation:up .2s ease}
+@keyframes up{from{transform:translateY(40px);opacity:.5}}
+.sheet h2{margin:0 0 14px;font-size:30px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:19px;color:var(--muted);margin-bottom:5px}
+.field input{width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-size:24px;outline:none}
+.field input:focus{border-color:var(--brand)}
+.row2{display:grid;grid-template-columns:1fr;gap:10px}
+.btns{display:flex;gap:10px;margin-top:6px}
+.btn{flex:1;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:700;cursor:pointer}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+@media (prefers-color-scheme:dark){.btn.pri{color:#062a26}}
+.btn.danger{color:var(--red)}
+.btn.sm{flex:none;padding:9px 14px;font-size:22px}
+.detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.actions{display:flex;gap:8px;margin:12px 0}
+.actions a{flex:1;text-align:center;text-decoration:none;padding:11px;border-radius:12px;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:22px}
+.big{display:grid;grid-template-columns:1fr;gap:8px;margin:8px 0 16px}
+.big div{background:var(--bg);border-radius:12px;padding:10px;min-width:0}
+.big>div{display:flex;justify-content:space-between;align-items:center}
+.big .l{font-size:18px;color:var(--muted)} .big .v{font-weight:800;font-size:24px}
+.pays h3{font-size:23px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+.pay{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.pay:last-child{border-bottom:0}
+.pay .amt{font-weight:700}
+.pay .dt{color:var(--muted);font-size:19px}
+.pay .x{background:none;border:0;color:var(--muted);font-size:30px;padding:4px 8px;cursor:pointer}
+.addpay{background:var(--bg);border-radius:12px;padding:12px;margin-top:10px;display:none}
+.addpay.show{display:block}
+.lock{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.lock.hide{display:none}
+.lock .box{width:100%;max-width:420px}
+.lock h1{font-size:34px;margin:0 0 6px}
+.lock p{color:var(--muted);margin:0 0 20px;font-size:19px}
+.remember{display:flex;align-items:center;gap:10px;font-size:19px;margin:4px 0 10px;cursor:pointer}
+.remember input{width:24px;height:24px;accent-color:var(--brand)}
+.lock .err{color:var(--red);min-height:26px;font-size:19px;margin-bottom:8px}
+.lock .link{background:none;border:0;color:var(--muted);text-decoration:underline;margin-top:18px;cursor:pointer;font-size:17px;width:100%}
+.logout{background:none;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:17px;cursor:pointer;color:var(--muted)}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:22px;opacity:0;transition:.2s;z-index:20;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="lock" id="lock">
+<div class="box">
+<h1 id="lkTitle">כניסה</h1>
+<p id="lkSub">הזינו מייל וסיסמה</p>
+<form id="lkForm">
+<div class="field"><label>מייל</label><input id="lkMail" type="email" inputmode="email" dir="ltr" autocomplete="username" required></div>
+<div class="field"><label>סיסמה</label><input id="lkPass" type="password" dir="ltr" autocomplete="current-password" required></div>
+<div class="field" id="lkPass2Wrap" style="display:none"><label>אימות סיסמה</label><input id="lkPass2" type="password" dir="ltr" autocomplete="new-password"></div>
+<div class="err" id="lkErr"></div>
+<button class="btn pri" style="width:100%" id="lkBtn">כניסה</button>
+</form>
+<button class="btn" id="lkSwitch" style="width:100%;margin-top:12px">יצירת חשבון חדש</button>
+<button class="link" id="lkForgot" style="margin-top:6px">שכחתי סיסמה</button>
+</div>
+</div>
+<div class="wrap">
+<header>
+<div>
+<h1>מעקב תשלומים</h1>
+<p id="sub">טוען…</p>
+<p id="who" style="direction:ltr;text-align:right;font-size:15px"></p>
+</div>
+<button class="logout" id="logout">יציאה</button>
+</header>
+<div class="stats">
+<div class="stat"><div class="l">סה״כ עסקאות</div><div class="v" id="sTotal">₪0</div></div>
+<div class="stat"><div class="l">שולם</div><div class="v" id="sPaid">₪0</div></div>
+<div class="stat debt"><div class="l">יתרה לגבייה</div><div class="v" id="sDebt">₪0</div></div>
+</div>
+<input class="search" id="q" type="search" placeholder="חיפוש לפי שם או טלפון">
+<div class="chips">
+<button class="chip on" data-f="all">הכל</button>
+<button class="chip" data-f="open">עם יתרה</button>
+<button class="chip" data-f="done">שולם במלואו</button>
+</div>
+<div class="list" id="list"></div>
+<div class="note" id="note" style="display:none"></div>
+</div>
+<button class="fab" id="addBtn">+ לקוח חדש</button>
+<!-- client form -->
+<div class="overlay" id="formOv">
+<div class="sheet">
+<h2 id="formTitle">לקוח חדש</h2>
+<form id="form">
+<div class="field"><label>שם</label><input id="fName" required autocomplete="off"></div>
+<div class="field"><label>טלפון</label><input id="fPhone" type="tel" inputmode="tel" dir="ltr" style="text-align:right"></div>
+<div class="field"><label>סכום העסקה (₪)</label><input id="fDeal" type="number" inputmode="decimal" min="0" step="any" required></div>
+<div id="firstPay">
+<div class="row2">
+<div class="field"><label>שולם בפועל (₪)</label><input id="fPaid" type="number" inputmode="decimal" min="0" step="any"></div>
+<div class="field"><label>תאריך תשלום</label><input id="fDate" type="date"></div>
+</div>
+</div>
+<div class="btns">
+<button type="button" class="btn" data-close>ביטול</button>
+<button type="submit" class="btn pri">שמירה</button>
+</div>
+</form>
+</div>
+</div>
+<!-- detail -->
+<div class="overlay" id="detOv">
+<div class="sheet" id="det"></div>
+</div>
+<!-- confirm -->
+<div class="overlay" id="cfOv">
+<div class="sheet">
+<h2 id="cfText">למחוק?</h2>
+<div class="btns">
+<button class="btn" data-close>ביטול</button>
+<button class="btn danger" id="cfYes">מחיקה</button>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+const ils = n => '₪' + (Math.round((n||0)*100)/100).toLocaleString('he-IL');
+const fmtDate = d => { if(!d) return ''; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; };
+const today = () => new Date().toISOString().slice(0,10);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+let clients = [];          // {id,name,phone,deal,payments:[{id,amount,date}],createdAt}
+let filter = 'all', query = '';
+let col = null;            // db collection
+let editingId = null, openId = null;
+const paidOf = c => (c.payments||[]).reduce((s,p)=>s+(+p.amount||0),0);
+const debtOf = c => Math.max(0,(+c.deal||0)-paidOf(c));
+const lastDate = c => (c.payments||[]).map(p=>p.date).filter(Boolean).sort().pop()||'';
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1800);}
+/* ---------- storage ---------- */
+let LS='';
+function lsLoad(){if(!LS)return [];try{return JSON.parse(localStorage.getItem(LS))||[]}catch(e){return []}}
+function lsSave(){if(!LS)return;try{localStorage.setItem(LS,JSON.stringify(clients))}catch(e){}}
+async function saveClient(c){
+const i=clients.findIndex(x=>x.id===c.id);
+if(i>=0) clients[i]=c; else clients.push(c);
+render();
+if(col){
+try{ const {id,...body}=c; await col.doc(id).set(body); }
+catch(e){ toast(e && e.code==='quota_exceeded' ? 'נגמר המקום לשמירה' : 'השמירה נכשלה, נסו שוב'); }
+} else lsSave();
+}
+async function removeClient(id){
+clients=clients.filter(c=>c.id!==id); render();
+if(col){ try{ await col.doc(id).delete(); }catch(e){ toast('המחיקה נכשלה'); } }
+else lsSave();
+}
+/* ---------- render ---------- */
+function render(){
+const tot=clients.reduce((s,c)=>s+(+c.deal||0),0);
+const paid=clients.reduce((s,c)=>s+paidOf(c),0);
+const debt=clients.reduce((s,c)=>s+debtOf(c),0);
+$('#sTotal').textContent=ils(tot); $('#sPaid').textContent=ils(paid); $('#sDebt').textContent=ils(debt);
+const openCount=clients.filter(c=>debtOf(c)>0).length;
+$('#sub').textContent = `${clients.length} לקוחות · ${openCount} עם יתרה פתוחה`;
+const q=query.trim().toLowerCase();
+let rows=clients.filter(c=>{
+if(filter==='open'&&debtOf(c)<=0) return false;
+if(filter==='done'&&debtOf(c)>0) return false;
+if(q && !(c.name||'').toLowerCase().includes(q) && !(c.phone||'').replace(/\D/g,'').includes(q.replace(/\D/g,'')||'\u0000')) return false;
+return true;
+}).sort((a,b)=>debtOf(b)-debtOf(a) || (b.createdAt||0)-(a.createdAt||0));
+const L=$('#list');
+if(!rows.length){
+L.innerHTML=`<div class="empty">${clients.length?'אין תוצאות':'עדיין אין לקוחות.<br>לחצו על ״לקוח חדש״ כדי להתחיל.'}</div>`;
+} else {
+L.innerHTML=rows.map(c=>{
+const p=paidOf(c), d=debtOf(c), pct=c.deal>0?Math.min(100,p/c.deal*100):100;
+const ld=lastDate(c);
+return `<div class="item" data-id="${c.id}">
+<div class="top">
+<div><div class="name">${esc(c.name)}</div>${c.phone?`<div class="phone">${esc(c.phone)}</div>`:''}</div>
+${d>0?`<span class="badge open">יתרה ${ils(d)}</span>`:`<span class="badge done">שולם ✓</span>`}
+</div>
+<div class="bar"><i style="width:${pct}%"></i></div>
+<div class="nums"><span>שולם <b>${ils(p)}</b> מתוך <b>${ils(c.deal)}</b></span><span>${ld?'אחרון: '+fmtDate(ld):'ללא תשלומים'}</span></div>
+</div>`;
+}).join('');
+}
+if(openId) renderDetail();
+}
+function waLink(phone){
+let d=(phone||'').replace(/\D/g,''); if(!d) return '';
+if(d.startsWith('0')) d='972'+d.slice(1);
+return 'https://wa.me/'+d;
+}
+function renderDetail(){
+const c=clients.find(x=>x.id===openId); if(!c){closeAll();return;}
+const p=paidOf(c), d=debtOf(c);
+const pays=[...(c.payments||[])].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+const wa=waLink(c.phone);
+$('#det').innerHTML=`
+<div class="detail-head">
+<div><h2 style="margin:0">${esc(c.name)}</h2>${c.phone?`<div class="phone" style="color:var(--muted)">${esc(c.phone)}</div>`:''}</div>
+<button class="btn sm" id="dEdit">עריכה</button>
+</div>
+${c.phone?`<div class="actions"><a href="tel:${esc(c.phone.replace(/[^\d+]/g,''))}">📞 התקשרות</a>${wa?`<a href="${wa}" target="_blank" rel="noopener">💬 וואטסאפ</a>`:''}</div>`:''}
+<div class="big">
+<div><div class="l">עסקה</div><div class="v">${ils(c.deal)}</div></div>
+<div><div class="l">שולם</div><div class="v" style="color:var(--green)">${ils(p)}</div></div>
+<div><div class="l">יתרה</div><div class="v" style="color:${d>0?'var(--red)':'var(--green)'}">${ils(d)}</div></div>
+</div>
+<div class="pays">
+<h3>תשלומים <button class="btn sm pri" id="dAddPay">+ תשלום</button></h3>
+<div class="addpay" id="payBox">
+<div class="row2">
+<div class="field"><label>סכום (₪)</label><input id="pAmt" type="number" inputmode="decimal" min="0" step="any"></div>
+<div class="field"><label>תאריך</label><input id="pDate" type="date" value="${today()}"></div>
+</div>
+<div class="btns"><button class="btn" id="pCancel">ביטול</button><button class="btn pri" id="pSave">הוספה</button></div>
+</div>
+${pays.length?pays.map(x=>`<div class="pay"><div><div class="amt">${ils(x.amount)}</div><div class="dt">${x.date?fmtDate(x.date):'ללא תאריך'}</div></div><button class="x" data-pay="${x.id}" aria-label="מחיקת תשלום">×</button></div>`).join(''):`<div class="empty" style="padding:16px">אין תשלומים עדיין</div>`}
+</div>
+<div class="btns" style="margin-top:16px">
+<button class="btn danger" id="dDel">מחיקת לקוח</button>
+<button class="btn" data-close>סגירה</button>
+</div>`;
+$('#dEdit').onclick=()=>openForm(c);
+$('#dAddPay').onclick=()=>{$('#payBox').classList.add('show');$('#pAmt').focus();};
+$('#pCancel').onclick=()=>$('#payBox').classList.remove('show');
+$('#pSave').onclick=()=>{
+const a=parseFloat($('#pAmt').value);
+if(!(a>0)){toast('יש להזין סכום');return;}
+const nc={...c,payments:[...(c.payments||[]),{id:uid(),amount:a,date:$('#pDate').value||today()}]};
+saveClient(nc); toast('התשלום נוסף');
+};
+$('#det').querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>{
+const pid=b.dataset.pay;
+confirmBox('למחוק את התשלום הזה?',()=>{saveClient({...c,payments:c.payments.filter(x=>x.id!==pid)});},'#detOv');
+});
+$('#dDel').onclick=()=>confirmBox(`למחוק את ${c.name}?`,()=>{openId=null;removeClient(c.id);closeAll();toast('הלקוח נמחק');});
+}
+/* ---------- dialogs ---------- */
+function show(id){$(id).classList.add('show')}
+function closeAll(){document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));openId=null;}
+let cfCb=null, cfBack=null;
+function confirmBox(text,cb,back){cfCb=cb;cfBack=back||null;$('#cfText').textContent=text;$('#detOv').classList.remove('show');show('#cfOv');}
+$('#cfYes').onclick=()=>{ $('#cfOv').classList.remove('show'); const cb=cfCb; cfCb=null; cb&&cb(); if(cfBack&&openId) show(cfBack); };
+function openForm(c){
+editingId=c?c.id:null;
+$('#formTitle').textContent=c?'עריכת לקוח':'לקוח חדש';
+$('#fName').value=c?c.name:''; $('#fPhone').value=c?c.phone||'':''; $('#fDeal').value=c?c.deal:'';
+$('#firstPay').style.display=c?'none':'block';
+$('#fPaid').value=''; $('#fDate').value=today();
+$('#detOv').classList.remove('show');
+show('#formOv'); if(!c) setTimeout(()=>$('#fName').focus(),50);
+}
+$('#form').onsubmit=e=>{
+e.preventDefault();
+const name=$('#fName').value.trim(), phone=$('#fPhone').value.trim(), deal=parseFloat($('#fDeal').value)||0;
+if(!name){toast('יש להזין שם');return;}
+if(editingId){
+const c=clients.find(x=>x.id===editingId);
+saveClient({...c,name,phone,deal});
+$('#formOv').classList.remove('show'); openId=editingId; renderDetail(); show('#detOv');
+} else {
+const paid=parseFloat($('#fPaid').value);
+const payments=paid>0?[{id:uid(),amount:paid,date:$('#fDate').value||today()}]:[];
+saveClient({id:uid(),name,phone,deal,payments,createdAt:Date.now()});
+$('#formOv').classList.remove('show'); toast('הלקוח נשמר');
+}
+};
+document.addEventListener('click',e=>{
+if(e.target.matches('[data-close]')||e.target.classList.contains('overlay')){
+const wasCf=e.target.closest('#cfOv');
+if(wasCf && cfBack && openId){ $('#cfOv').classList.remove('show'); show(cfBack); return; }
+closeAll();
+}
+const it=e.target.closest('.item'); if(it){openId=it.dataset.id;renderDetail();show('#detOv');}
+const ch=e.target.closest('.chip'); if(ch){filter=ch.dataset.f;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===ch));render();}
+});
+$('#q').oninput=e=>{query=e.target.value;render();};
+$('#addBtn').onclick=()=>openForm(null);
+/* ---------- accounts ---------- */
+const ACC='payments-accounts', LAST='payments-last-mail', OLD_AUTH='payments-tracker-auth';
+const dataKey=m=>'payments-tracker-v1:'+m;
+async function hash(s){
+try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+catch(e){let x=5381;for(const c of s)x=((x<<5)+x+c.charCodeAt(0))|0;return 'f'+(x>>>0).toString(16);}
+}
+function getAccs(){try{return JSON.parse(localStorage.getItem(ACC))||{}}catch(e){return {}}}
+function setAccs(a){localStorage.setItem(ACC,JSON.stringify(a))}
+function getLast(){try{return localStorage.getItem(LAST)||''}catch(e){return ''}}
+// migrate single account from earlier version
+try{
+const old=JSON.parse(localStorage.getItem(OLD_AUTH)||'null');
+if(old&&old.mail){const a=getAccs();if(!a[old.mail]){a[old.mail]=old.h;setAccs(a);
+const d=localStorage.getItem('payments-tracker-v1');if(d&&!localStorage.getItem(dataKey(old.mail)))localStorage.setItem(dataKey(old.mail),d);
+localStorage.setItem(LAST,old.mail);}
+localStorage.removeItem(OLD_AUTH);localStorage.removeItem('payments-tracker-v1');}
+}catch(e){}
+let mode='login';
+function setMode(m){
+mode=m;const login=m==='login';
+$('#lkTitle').textContent=login?'כניסה':'חשבון חדש';
+$('#lkSub').textContent=login?'הזינו מייל וסיסמה':'בחרו מייל וסיסמה';
+$('#lkPass2Wrap').style.display=login?'none':'block';
+$('#lkBtn').textContent=login?'כניסה':'יצירת חשבון';
+$('#lkSwitch').textContent=login?'יצירת חשבון חדש':'חזרה לכניסה';
+$('#lkForgot').style.display=login?'block':'none';
+$('#lkPass').autocomplete=login?'current-password':'new-password';
+$('#lkMail').value=login?getLast():'';
+$('#lkPass').value='';$('#lkPass2').value='';$('#lkErr').textContent='';
+setTimeout(()=>((login&&$('#lkMail').value)?$('#lkPass'):$('#lkMail')).focus(),50);
+}
+function enter(mail){
+LS=dataKey(mail);clients=lsLoad();filter='all';query='';$('#q').value='';render();
+try{localStorage.setItem(LAST,mail);sessionStorage.setItem('payments-user',mail)}catch(e){}
+$('#who').textContent=mail;
+$('#lkPass').value='';$('#lkPass2').value='';
+$('#lock').classList.add('hide');
+}
+function lockApp(){
+try{sessionStorage.removeItem('payments-user')}catch(e){}
+clients=[];LS='';render();closeAll();setMode('login');$('#lock').classList.remove('hide');
+}
+$('#lkSwitch').onclick=()=>setMode(mode==='login'?'signup':'login');
+$('#lkForm').onsubmit=async e=>{
+e.preventDefault();
+const mail=$('#lkMail').value.trim().toLowerCase(), pass=$('#lkPass').value, accs=getAccs(), err=$('#lkErr');
+if(!mail){err.textContent='יש להזין מייל';return;}
+if(mode==='signup'){
+if(accs[mail]){err.textContent='כבר יש חשבון עם המייל הזה. אפשר להיכנס.';return;}
+if(pass.length<4){err.textContent='סיסמה של 4 תווים לפחות';return;}
+if(pass!==$('#lkPass2').value){err.textContent='הסיסמאות לא תואמות';return;}
+accs[mail]=await hash(mail+'|'+pass);
+try{setAccs(accs)}catch(x){err.textContent='הדפדפן לא מאפשר שמירה';return;}
+enter(mail);toast('החשבון נוצר');
+} else {
+if(!accs[mail]){err.textContent='אין חשבון עם המייל הזה. אפשר ליצור חשבון חדש למטה.';return;}
+if(accs[mail]!==await hash(mail+'|'+pass)){err.textContent='סיסמה שגויה';return;}
+enter(mail);
+}
+};
+$('#logout').onclick=lockApp;
+$('#lkForgot').onclick=()=>{
+const mail=$('#lkMail').value.trim().toLowerCase(), err=$('#lkErr');
+if(!mail||!getAccs()[mail]){err.textContent='הזינו קודם את המייל של החשבון';return;}
+err.innerHTML='אין דרך לשחזר סיסמה. אפשר למחוק את החשבון <b>'+esc(mail)+'</b> וכל הנתונים שלו, ולפתוח אותו מחדש. <button type="button" class="btn danger sm" id="lkReset" style="margin-top:8px">מחיקת החשבון</button>';
+$('#lkReset').onclick=()=>{try{const a=getAccs();delete a[mail];setAccs(a);localStorage.removeItem(dataKey(mail))}catch(e){};toast('החשבון נמחק');setMode('signup');$('#lkMail').value=mail;};
+};
+/* ---------- boot ---------- */
+render();
+(()=>{
+let cur=null;try{cur=sessionStorage.getItem('payments-user')}catch(e){}
+if(cur&&getAccs()[cur]) enter(cur);
+else setMode('login');
+try{localStorage.setItem('__t','1');localStorage.removeItem('__t');}
+catch(e){const n=$('#note');n.style.display='block';n.textContent='הדפדפן לא מאפשר שמירה. פתחו בכרום או בספארי רגיל (לא במצב גלישה בסתר).';}
+})();
+</script>
+</body>
+</html>
